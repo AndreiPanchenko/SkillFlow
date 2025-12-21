@@ -2,711 +2,748 @@
 
 ## 1. Описание реализованного проекта
 
-**SkillFlow** - веб-приложение для управления онлайн-обучением, разработанное на Spring Boot. Реализованы полные CRUD операции для трёх основных сущностей: эксперты, студенты и курсы.
+**SkillFlow** - веб-приложение для управления онлайн-обучением, разработанное на Spring Boot с использованием полного стека технологий. Система предоставляет комплексное решение для управления образовательным процессом: от экспертов и студентов до курсов и учебных планов.
 
 ### Реализованные функции:
-- ✅ Просмотр списков экспертов, студентов, курсов
-- ✅ Добавление новых записей  
-- ✅ Редактирование существующих записей
-- ✅ Удаление записей с подтверждением
-- ✅ Валидация вводимых данных на стороне сервера и клиента
-- ✅ Связи между таблицами (эксперты-курсы)
+- ✅ Полный CRUD для экспертов, студентов, курсов и учебных планов
+- ✅ Связи между сущностями (эксперты-курсы, студенты-учебные планы, курсы-учебные планы)
+- ✅ Валидация данных на стороне сервера (Bean Validation) и клиента (HTML5 validation)
+- ✅ Пагинация и фильтрация данных
+- ✅ Анимации и интерактивный интерфейс
+- ✅ Обработка ошибок и валидационных исключений
+- ✅ Локализация дат и времени
+- ✅ Статистика и аналитика по каждому модулю
 
-## 2. Реализованные Java классы и методы
+## 2. Архитектура проекта
 
-### 2.1. Главный класс приложения
+### 2.1. Многослойная архитектура
+```
+Презентационный слой (Controllers + Thymeleaf)
+       ↓
+Бизнес-логика (Services)
+       ↓
+Доступ к данным (Repositories + JPA)
+       ↓
+База данных (PostgreSQL)
+```
 
-**SkillFlowApplication.java**
+### 2.2. Сущности базы данных и их связи
+```
+Expert (1) ----- (n) Course (1) ----- (n) StudyPlan (n) ----- (1) Student
+                    |                           ↑
+                    └── (n) CoursePrice         └── Статусы: активен, завершен, приостановлен, отменен
+```
+
+## 3. Реализованные Java классы и методы
+
+### 3.1. Главный класс приложения
+
+**SkillFlowApplication.java** - точка входа в Spring Boot приложение
 ```java
-package com.skillflow;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
 /**
- * Главный класс Spring Boot приложения
- * Запускает веб-приложение SkillFlow на порту 8080
+ * Главный класс приложения SkillFlow - точка входа в Spring Boot приложение.
+ * Аннотация @SpringBootApplication включает автоматическую конфигурацию,
+ * сканирование компонентов и настройку бинов.
  */
 @SpringBootApplication
 public class SkillFlowApplication {
     public static void main(String[] args) {
-        // Запуск Spring Boot приложения
         SpringApplication.run(SkillFlowApplication.class, args);
     }
 }
 ```
 
-### 2.2. Entity классы (Сущности базы данных)
+### 3.2. Entity классы (Сущности базы данных)
 
-**Expert.java** - сущность эксперта/преподавателя
+#### **Expert.java** - сущность эксперта/преподавателя
 ```java
+/**
+ * Сущность, представляющая эксперта (преподавателя) в системе SkillFlow.
+ * Содержит информацию об эксперте: имя, фамилия, email, биография,
+ * специализация и список курсов, которые он ведет.
+ * Отображается на таблицу "experts" в базе данных.
+ */
 @Entity
 @Table(name = "experts")
 public class Expert {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_эксперта")
-    private Long id;  // Уникальный идентификатор эксперта
+    private Long id;
 
     @NotBlank(message = "Имя обязательно")
     @Column(name = "имя_эксперта")
-    private String firstName;  // Имя эксперта
+    private String firstName;
 
     @NotBlank(message = "Фамилия обязательна")
     @Column(name = "фамилия_эксперта")
-    private String lastName;   // Фамилия эксперта
+    private String lastName;
 
     @Email(message = "Некорректный email")
     @NotBlank(message = "Email обязателен")
-    @Column(name = "email_эксперта")
-    private String email;      // Email адрес
+    @Column(name = "email_эксперта", unique = true)
+    private String email;
 
     @Column(name = "биография_эксперта")
-    private String biography;  // Профессиональная биография
+    private String biography;
 
     @NotBlank(message = "Специализация обязательна")
     @Column(name = "специализация_эксперта")
-    private String specialization;  // Специализация эксперта
+    private String specialization;
 
-    // Связь один-ко-многим с курсами - один эксперт может вести много курсов
     @OneToMany(mappedBy = "expert", cascade = CascadeType.ALL)
     private List<Course> courses;
-
-    // Конструктор по умолчанию (требуется JPA)
-    public Expert() {}
-
-    // Конструктор с параметрами для удобного создания объектов
-    public Expert(String firstName, String lastName, String email, String biography, String specialization) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.biography = biography;
-        this.specialization = specialization;
-    }
-
-    // Геттеры и сеттеры для доступа к полям
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-    // ... остальные геттеры и сеттеры
+    
+    // Конструкторы, геттеры и сеттеры
 }
 ```
 
-**Student.java** - сущность студента
+#### **Student.java** - сущность студента
 ```java
+/**
+ * Сущность, представляющая студента в системе SkillFlow.
+ * Содержит основную информацию о студенте: имя, фамилия, email,
+ * дата регистрации, статус и список учебных планов.
+ * Отображается на таблицу "students" в базе данных.
+ */
 @Entity
 @Table(name = "students")
 public class Student {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_студента")
-    private Long id;  // Уникальный идентификатор студента
+    private Long id;
 
-    @NotBlank(message = "Имя обязательно")
     @Column(name = "имя_студента")
-    private String firstName;  // Имя студента
+    private String firstName;
 
-    @NotBlank(message = "Фамилия обязательна")
     @Column(name = "фамилия_студента")
-    private String lastName;   // Фамилия студента
+    private String lastName;
 
-    @Email(message = "Некорректный email")
-    @NotBlank(message = "Email обязателен")
-    @Column(name = "email_студента")
-    private String email;      // Email студента
+    @Column(name = "email_студента", unique = true)
+    private String email;
 
     @Column(name = "дата_регистрации_студента")
-    private LocalDateTime registrationDate;  // Дата регистрации на платформе
+    private LocalDateTime registrationDate;
 
-    // Связь один-ко-многим с учебными планами
+    @Column(name = "статус_студента")
+    private String status; // "АКТИВЕН", "ЗАВЕРШИЛ", "ОТЧИСЛЕН", "В_ОЖИДАНИИ"
+
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL)
     private List<StudyPlan> studyPlans;
-
-    public Student() {}
-
-    public Student(String firstName, String lastName, String email) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.registrationDate = LocalDateTime.now();  // Автоматическая установка даты регистрации
-    }
-
-    // Геттеры и сеттеры
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    // ... остальные геттеры и сеттеры
+    
+    // Конструкторы, геттеры и сеттеры
 }
 ```
 
-**Course.java** - сущность курса
+#### **Course.java** - сущность курса
 ```java
+/**
+ * Сущность, представляющая курс в системе SkillFlow.
+ * Содержит информацию о курсе: название, описание, даты проведения,
+ * эксперта (преподавателя), статус и связанные объекты (цены, учебные планы).
+ * Отображается на таблицу "courses" в базе данных.
+ */
 @Entity
 @Table(name = "courses")
 public class Course {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_курса")
-    private Long id;  // Уникальный идентификатор курса
+    private Long id;
 
     @NotBlank(message = "Название курса обязательно")
+    @Size(min = 3, max = 100, message = "Название курса должно быть от 3 до 100 символов")
     @Column(name = "название_курса")
-    private String title;  // Название курса
+    private String title;
 
+    @Size(max = 1000, message = "Описание не должно превышать 1000 символов")
     @Column(name = "описание_курса")
-    private String description;  // Описание курса
+    private String description;
 
     @Column(name = "дата_создания_курса")
-    private LocalDateTime creationDate;  // Дата создания курса
+    private LocalDateTime creationDate;
 
-    // Связь многие-к-одному с экспертом - курс принадлежит одному эксперту
+    @Column(name = "дата_обновления_курса")
+    private LocalDateTime updatedDate;
+
     @ManyToOne
     @JoinColumn(name = "id_эксперта")
-    private Expert expert;  // Эксперт, создавший курс
+    private Expert expert;
 
-    // Связь один-ко-многим с ценами курса
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
     private List<CoursePrice> prices;
 
-    // Связь один-ко-многим с учебными планами
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
     private List<StudyPlan> studyPlans;
 
-    public Course() {}
+    @Column(name = "статус_курса")
+    @NotBlank(message = "Статус обязателен")
+    private String status; // "АКТИВЕН", "НЕ_АКТИВЕН", "В_РАЗРАБОТКЕ"
 
-    public Course(String title, String description, Expert expert) {
-        this.title = title;
-        this.description = description;
-        this.expert = expert;
-        this.creationDate = LocalDateTime.now();  // Автоматическая установка даты создания
-    }
+    @Column(name = "начало_регистрации")
+    private LocalDateTime registrationStart;
 
-    // Геттеры и сеттеры
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    // ... остальные геттеры и сеттеры
+    @Column(name = "окончание_регистрации")
+    private LocalDateTime registrationEnd;
+
+    @Column(name = "начало_курса")
+    private LocalDateTime courseStart;
+
+    @Column(name = "окончание_курса")
+    private LocalDateTime courseEnd;
+    
+    // Конструкторы, геттеры и сеттеры
 }
 ```
 
-**CoursePrice.java** - сущность цены курса
+#### **StudyPlan.java** - сущность учебного плана
 ```java
-@Entity
-@Table(name = "course_prices")
-public class CoursePrice {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;  // Уникальный идентификатор цены
-
-    // Связь многие-к-одному с курсом
-    @ManyToOne
-    @JoinColumn(name = "id_курса")
-    @NotNull(message = "Курс обязателен")
-    private Course course;  // Курс, к которому относится цена
-
-    @Column(name = "дата_начала_действия_цены")
-    @NotNull(message = "Дата начала действия обязательна")
-    private LocalDateTime startDate;  // Дата начала действия цены
-
-    @Column(name = "цена_курса")
-    @DecimalMin(value = "0.0", message = "Цена должна быть положительной")
-    private BigDecimal price;  // Стоимость курса
-
-    @Column(name = "дата_окончания_действия_цены")
-    private LocalDateTime endDate;  // Дата окончания действия цены
-
-    public CoursePrice() {}
-
-    public CoursePrice(Course course, LocalDateTime startDate, BigDecimal price) {
-        this.course = course;
-        this.startDate = startDate;
-        this.price = price;
-    }
-
-    // Геттеры и сеттеры
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    // ... остальные геттеры и сеттеры
-}
-```
-
-**StudyPlan.java** - сущность учебного плана
-```java
+/**
+ * Сущность, представляющая учебный план в системе SkillFlow.
+ * Связывает студента с курсом и содержит информацию о датах обучения
+ * и статусе прохождения. Отображается на таблицу "study_plans" в базе данных.
+ */
 @Entity
 @Table(name = "study_plans")
 public class StudyPlan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_плана")
-    private Long id;  // Уникальный идентификатор учебного плана
+    private Long id;
 
-    // Связь многие-к-одному со студентом
     @ManyToOne
     @JoinColumn(name = "id_студента")
     @NotNull(message = "Студент обязателен")
-    private Student student;  // Студент учебного плана
+    private Student student;
 
-    // Связь многие-к-одному с курсом
     @ManyToOne
     @JoinColumn(name = "id_курса")
     @NotNull(message = "Курс обязателен")
-    private Course course;    // Курс учебного плана
+    private Course course;
 
     @Column(name = "дата_начала")
-    private LocalDateTime startDate;  // Дата начала обучения
+    private LocalDateTime startDate;
 
     @Column(name = "плановая_дата_окончания")
-    private LocalDateTime plannedEndDate;  // Плановая дата окончания
+    private LocalDateTime plannedEndDate;
 
     @Column(name = "статус_плана")
-    private String status;    // Статус учебного плана
-
-    public StudyPlan() {}
-
-    public StudyPlan(Student student, Course course) {
-        this.student = student;
-        this.course = course;
-        this.startDate = LocalDateTime.now();  // Автоматическая установка даты начала
-        this.status = "активен";  // Статус по умолчанию
-    }
-
-    // Геттеры и сеттеры
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    // ... остальные геттеры и сеттеры
+    private String status;
+    
+    // Конструкторы, геттеры и сеттеры
 }
 ```
 
-### 2.3. Repository интерфейсы (Доступ к данным)
-
-**ExpertRepository.java**
+#### **CoursePrice.java** - сущность цены курса
 ```java
+/**
+ * Сущность, представляющая цену курса в системе SkillFlow.
+ * Содержит информацию о цене курса на определенный период времени.
+ * Позволяет устанавливать разные цены для курса в разные периоды.
+ * Отображается на таблицу "course_prices" в базе данных.
+ */
+@Entity
+@Table(name = "course_prices")
+public class CoursePrice {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "id_курса")
+    @NotNull(message = "Курс обязателен")
+    private Course course;
+
+    @Column(name = "дата_начала_действия_цены")
+    @NotNull(message = "Дата начала действия обязательна")
+    private LocalDateTime startDate;
+
+    @Column(name = "цена_курса")
+    @DecimalMin(value = "0.0", message = "Цена должна быть положительной")
+    private BigDecimal price;
+
+    @Column(name = "дата_окончания_действия_цены")
+    private LocalDateTime endDate;
+    
+    // Конструкторы, геттеры и сеттеры
+}
+```
+
+### 3.3. Repository интерфейсы (Доступ к данным)
+
+#### **ExpertRepository.java**
+```java
+/**
+ * Репозиторий для работы с экспертами в базе данных.
+ * Предоставляет методы для выполнения операций с сущностью Expert.
+ * Наследует JpaRepository, что дает базовые CRUD операции.
+ */
 @Repository
 public interface ExpertRepository extends JpaRepository<Expert, Long> {
-    // Найти экспертов по специализации
     List<Expert> findBySpecialization(String specialization);
-    
-    // Найти экспертов по фамилии (без учета регистра)
     List<Expert> findByLastNameContainingIgnoreCase(String lastName);
+    Expert findByEmail(String email);
 }
 ```
 
-**StudentRepository.java**
+#### **StudentRepository.java**
 ```java
+/**
+ * Репозиторий для работы со студентами в базе данных.
+ * Предоставляет методы для выполнения операций с сущностью Student.
+ */
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long> {
-    // Найти студентов по фамилии (без учета регистра)
     List<Student> findByLastNameContainingIgnoreCase(String lastName);
-    
-    // Найти студента по email
     Student findByEmail(String email);
+    List<Student> findByStatus(String status);
+    
+    @Query("SELECT s FROM Student s WHERE s.registrationDate BETWEEN :startDate AND :endDate")
+    List<Student> findByRegistrationDateBetween(@Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate);
 }
 ```
 
-**CourseRepository.java**
+#### **CourseRepository.java**
 ```java
+/**
+ * Репозиторий для работы с курсами в базе данных.
+ * Предоставляет методы для выполнения операций с сущностью Course.
+ */
 @Repository
 public interface CourseRepository extends JpaRepository<Course, Long> {
-    // Найти курсы по названию (без учета регистра)
     List<Course> findByTitleContainingIgnoreCase(String title);
-    
-    // Найти курсы по ID эксперта
     List<Course> findByExpertId(Long expertId);
+    List<Course> findByStatus(String status);
+    List<Course> findByCreationDateBetween(LocalDateTime start, LocalDateTime end);
+    List<Course> findByStatusAndRegistrationEndAfter(String status, LocalDateTime date);
+    
+    @Query("SELECT c FROM Course c WHERE " +
+        "(:status IS NULL OR c.status = :status) AND " +
+        "(:expertId IS NULL OR c.expert.id = :expertId) AND " +
+        "(:startDate IS NULL OR c.creationDate >= :startDate) AND " +
+        "(:endDate IS NULL OR c.creationDate <= :endDate)")
+    List<Course> findWithFilters(@Param("status") String status,
+        @Param("expertId") Long expertId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate);
 }
 ```
 
-**CoursePriceRepository.java**
+#### **StudyPlanRepository.java**
 ```java
-@Repository
-public interface CoursePriceRepository extends JpaRepository<CoursePrice, Long> {
-    // Найти цены по ID курса
-    List<CoursePrice> findByCourseId(Long courseId);
-}
-```
-
-**StudyPlanRepository.java**
-```java
+/**
+ * Репозиторий для работы с учебными планами в базе данных.
+ * Предоставляет методы для выполнения операций с сущностью StudyPlan.
+ */
 @Repository
 public interface StudyPlanRepository extends JpaRepository<StudyPlan, Long> {
-    // Найти учебные планы по ID студента
     List<StudyPlan> findByStudentId(Long studentId);
-    
-    // Найти учебные планы по ID курса
     List<StudyPlan> findByCourseId(Long courseId);
-    
-    // Найти учебные планы по статусу
     List<StudyPlan> findByStatus(String status);
+    List<StudyPlan> findByStudentIdAndCourseId(Long studentId, Long courseId);
 }
 ```
 
-### 2.4. Service классы (Бизнес-логика)
+### 3.4. Service классы (Бизнес-логика)
 
-**ExpertService.java**
+#### **ExpertService.java**
 ```java
+/**
+ * Сервисный класс для бизнес-логики работы с экспертами.
+ * Содержит методы для управления экспертами: создание, обновление, удаление,
+ * поиск и валидация. Все методы выполняются в транзакционном контексте.
+ */
 @Service
+@Transactional
 public class ExpertService {
     @Autowired
     private ExpertRepository expertRepository;
 
-    // Получить всех экспертов
     public List<Expert> getAllExperts() {
         return expertRepository.findAll();
     }
 
-    // Получить эксперта по ID
     public Optional<Expert> getExpertById(Long id) {
         return expertRepository.findById(id);
     }
 
-    // Сохранить эксперта (создание или обновление)
     public Expert saveExpert(Expert expert) {
+        // Валидация данных
+        if (expert.getFirstName() == null || expert.getFirstName().trim().isEmpty()) {
+            throw new RuntimeException("Имя не может быть пустым");
+        }
+        // Проверка уникальности email
+        Expert existingExpert = expertRepository.findByEmail(expert.getEmail());
+        if (existingExpert != null &&
+            (expert.getId() == null || !existingExpert.getId().equals(expert.getId()))) {
+            throw new RuntimeException("Эксперт с таким email уже существует");
+        }
         return expertRepository.save(expert);
     }
-
-    // Удалить эксперта по ID
-    public void deleteExpert(Long id) {
-        expertRepository.deleteById(id);
-    }
-
-    // Получить экспертов по специализации
-    public List<Expert> getExpertsBySpecialization(String specialization) {
-        return expertRepository.findBySpecialization(specialization);
-    }
+    
+    // Другие методы
 }
 ```
 
-**StudentService.java**
+#### **CourseService.java**
 ```java
+/**
+ * Сервисный класс для бизнес-логики работы с курсами.
+ * Содержит методы для управления курсами: создание, обновление, удаление,
+ * поиск и валидация. Все методы выполняются в транзакционном контексте.
+ */
 @Service
-public class StudentService {
-    @Autowired
-    private StudentRepository studentRepository;
-
-    // Получить всех студентов
-    public List<Student> getAllStudents() {
-        return studentRepository.findAll();
-    }
-
-    // Получить студента по ID
-    public Optional<Student> getStudentById(Long id) {
-        return studentRepository.findById(id);
-    }
-
-    // Сохранить студента (создание или обновление)
-    public Student saveStudent(Student student) {
-        return studentRepository.save(student);
-    }
-
-    // Удалить студента по ID
-    public void deleteStudent(Long id) {
-        studentRepository.deleteById(id);
-    }
-}
-```
-
-**CourseService.java**
-```java
-@Service
+@Transactional
 public class CourseService {
     @Autowired
     private CourseRepository courseRepository;
 
-    // Получить все курсы
     public List<Course> getAllCourses() {
         return courseRepository.findAll();
     }
 
-    // Получить курс по ID
     public Optional<Course> getCourseById(Long id) {
         return courseRepository.findById(id);
     }
 
-    // Сохранить курс (создание или обновление)
     public Course saveCourse(Course course) {
+        // Валидация перед сохранением
+        validateCourse(course);
         return courseRepository.save(course);
     }
 
-    // Удалить курс по ID
-    public void deleteCourse(Long id) {
-        courseRepository.deleteById(id);
+    private void validateCourse(Course course) {
+        if (course.getTitle() == null || course.getTitle().trim().length() < 3) {
+            throw new IllegalArgumentException("Название курса должно содержать минимум 3 символа");
+        }
+        // Валидация дат
+        if (course.getRegistrationStart() != null && course.getRegistrationEnd() != null &&
+            !course.getRegistrationEnd().isAfter(course.getRegistrationStart())) {
+            throw new IllegalArgumentException("Дата окончания регистрации должна быть после даты начала");
+        }
     }
-
-    // Получить курсы по ID эксперта
-    public List<Course> getCoursesByExpert(Long expertId) {
-        return courseRepository.findByExpertId(expertId);
-    }
+    
+    // Другие методы
 }
 ```
 
-### 2.5. Controller классы (Веб-слой)
+### 3.5. Controller классы (Веб-слой)
 
-**MainController.java** - контроллер главной страницы
+#### **ExpertController.java** - CRUD операции для экспертов
 ```java
+/**
+ * Контроллер для управления экспертами (преподавателями) в системе SkillFlow.
+ * Обрабатывает операции с экспертами: создание, редактирование,
+ * удаление и просмотр. Использует валидацию данных через аннотации Bean Validation.
+ */
 @Controller
-public class MainController {
-    // Обработка GET запроса на главную страницу
-    @GetMapping("/")
-    public String home(Model model) {
-        model.addAttribute("title", "SkillFlow - Система управления обучением");
-        return "index";  // Возвращает шаблон index.html
-    }
-}
-```
-
-**ExpertController.java** - CRUD операции для экспертов
-```java
-@Controller
-@RequestMapping("/experts")  // Базовый URL для всех методов контроллера
+@RequestMapping("/experts")
 public class ExpertController {
     @Autowired
     private ExpertService expertService;
 
-    // GET /experts - отображение списка всех экспертов
     @GetMapping
     public String getAllExperts(Model model) {
         model.addAttribute("experts", expertService.getAllExperts());
-        return "experts/list";  // Шаблон списка экспертов
+        return "experts/list";
     }
 
-    // GET /experts/{id} - просмотр конкретного эксперта
     @GetMapping("/{id}")
     public String getExpertById(@PathVariable Long id, Model model) {
         Optional<Expert> expert = expertService.getExpertById(id);
         if (expert.isPresent()) {
             model.addAttribute("expert", expert.get());
-            return "experts/view";  // Шаблон просмотра эксперта
-        }
-        return "redirect:/experts";  // Перенаправление если эксперт не найден
-    }
-
-    // GET /experts/new - форма создания нового эксперта
-    @GetMapping("/new")
-    public String showExpertForm(Model model) {
-        model.addAttribute("expert", new Expert());
-        return "experts/form";  // Шаблон формы эксперта
-    }
-
-    // POST /experts - сохранение нового или обновленного эксперта
-    @PostMapping
-    public String saveExpert(@Valid @ModelAttribute Expert expert, BindingResult result) {
-        // Проверка ошибок валидации
-        if (result.hasErrors()) {
-            return "experts/form";  // Возврат к форме при ошибках
-        }
-        expertService.saveExpert(expert);
-        return "redirect:/experts";  // Перенаправление после успешного сохранения
-    }
-
-    // GET /experts/{id}/edit - форма редактирования эксперта
-    @GetMapping("/{id}/edit")
-    public String editExpert(@PathVariable Long id, Model model) {
-        Optional<Expert> expert = expertService.getExpertById(id);
-        if (expert.isPresent()) {
-            model.addAttribute("expert", expert.get());
-            return "experts/form";  // Используется та же форма что и для создания
+            return "experts/view";
         }
         return "redirect:/experts";
     }
 
-    // GET /experts/{id}/delete - удаление эксперта
-    @GetMapping("/{id}/delete")
-    public String deleteExpert(@PathVariable Long id) {
-        expertService.deleteExpert(id);
-        return "redirect:/experts";  // Перенаправление после удаления
+    @GetMapping("/new")
+    public String showExpertForm(Model model) {
+        model.addAttribute("expert", new Expert());
+        return "experts/form";
     }
+
+    @PostMapping("/create")
+    public String createExpert(@Valid @ModelAttribute Expert expert, BindingResult result) {
+        if (result.hasErrors()) {
+            return "experts/form";
+        }
+        try {
+            expertService.saveExpert(expert);
+            return "redirect:/experts";
+        } catch (RuntimeException e) {
+            result.rejectValue("email", "error.expert", e.getMessage());
+            return "experts/form";
+        }
+    }
+    
+    // Другие методы
 }
 ```
 
-**StudentController.java** - CRUD операции для студентов (аналогично ExpertController)
-
-**CourseController.java** - CRUD операции для курсов с привязкой к экспертам
+#### **CourseController.java** - CRUD операции для курсов
 ```java
+/**
+ * Контроллер для управления курсами в системе SkillFlow.
+ * Обрабатывает HTTP-запросы, связанные с курсами: создание, редактирование,
+ * удаление, просмотр и управление статусами.
+ */
 @Controller
 @RequestMapping("/courses")
 public class CourseController {
+    private static final Logger logger = LoggerFactory.getLogger(CourseController.class);
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
     @Autowired
     private CourseService courseService;
     @Autowired
     private ExpertService expertService;
 
-    // GET /courses - список всех курсов
     @GetMapping
-    public String getAllCourses(Model model) {
-        model.addAttribute("courses", courseService.getAllCourses());
+    public String getAllCourses(Model model,
+        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "startDate", required = false) String startDate,
+        @RequestParam(value = "endDate", required = false) String endDate) {
+        
+        List<Course> courses;
+        if (status != null && !status.isEmpty()) {
+            courses = courseService.getCoursesByStatus(status);
+        } else if (startDate != null && endDate != null) {
+            try {
+                LocalDateTime start = LocalDate.parse(startDate, DATE_FORMATTER).atStartOfDay();
+                LocalDateTime end = LocalDate.parse(endDate, DATE_FORMATTER).atTime(23, 59, 59);
+                courses = courseService.getCoursesByDateRange(start, end);
+            } catch (DateTimeParseException e) {
+                model.addAttribute("error", "Неверный формат даты");
+                courses = courseService.getAllCourses();
+            }
+        } else {
+            courses = courseService.getAllCourses();
+        }
+
+        model.addAttribute("courses", courses);
+        model.addAttribute("statuses", List.of("АКТИВЕН", "НЕ_АКТИВЕН", "В_РАЗРАБОТКЕ"));
+        model.addAttribute("experts", expertService.getAllExperts());
         return "courses/list";
     }
+    
+    // Другие методы
+}
+```
 
-    // GET /courses/{id} - просмотр конкретного курса
-    @GetMapping("/{id}")
-    public String getCourseById(@PathVariable Long id, Model model) {
-        Optional<Course> course = courseService.getCourseById(id);
-        if (course.isPresent()) {
-            model.addAttribute("course", course.get());
-            return "courses/view";
-        }
-        return "redirect:/courses";
-    }
+#### **StudyPlanController.java** - управление учебными планами
+```java
+/**
+ * Контроллер для управления учебными планами в системе SkillFlow.
+ * Учебный план связывает студента с курсом и содержит информацию
+ * о датах обучения и статусе прохождения.
+ */
+@Controller
+@RequestMapping("/studyplans")
+public class StudyPlanController {
+    @Autowired
+    private StudyPlanService studyPlanService;
+    @Autowired
+    private StudentService studentService;
+    @Autowired
+    private CourseService courseService;
 
-    // GET /courses/new - форма создания курса
-    @GetMapping("/new")
-    public String showCourseForm(Model model) {
-        model.addAttribute("course", new Course());
-        // Получение списка экспертов для выпадающего списка
-        List<Expert> experts = expertService.getAllExperts();
-        model.addAttribute("experts", experts);
-        return "courses/form";
-    }
-
-    // POST /courses - сохранение курса
-    @PostMapping
-    public String saveCourse(@Valid @ModelAttribute Course course,
-            BindingResult result,
-            @RequestParam Long expertId,  // ID эксперта из формы
-            Model model) {
-        if (result.hasErrors()) {
-            model.addAttribute("experts", expertService.getAllExperts());
-            return "courses/form";
-        }
-
-        // Поиск эксперта по ID и привязка к курсу
-        Optional<Expert> expert = expertService.getExpertById(expertId);
-        if (expert.isPresent()) {
-            course.setExpert(expert.get());
-            courseService.saveCourse(course);
-            return "redirect:/courses";
-        } else {
-            model.addAttribute("error", "Эксперт не найден");
-            model.addAttribute("experts", expertService.getAllExperts());
-            return "courses/form";
+    @GetMapping
+    public String getAllStudyPlans(Model model) {
+        try {
+            model.addAttribute("studyPlans", studyPlanService.getAllStudyPlans());
+            model.addAttribute("statuses", List.of("активен", "завершен", "приостановлен", "отменен"));
+            return "studyplans/list";
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "Ошибка при загрузке учебных планов: " + e.getMessage());
+            return "error/error";
         }
     }
+    
+    // Другие методы
+}
+```
 
-    // GET /courses/{id}/edit - форма редактирования курса
-    @GetMapping("/{id}/edit")
-    public String editCourse(@PathVariable Long id, Model model) {
-        Optional<Course> course = courseService.getCourseById(id);
-        if (course.isPresent()) {
-            model.addAttribute("course", course.get());
-            model.addAttribute("experts", expertService.getAllExperts());
-            return "courses/form";
-        }
-        return "redirect:/courses";
+### 3.6. Обработка исключений
+
+#### **GlobalExceptionHandler.java**
+```java
+/**
+ * Глобальный обработчик исключений для всего приложения SkillFlow.
+ * Этот класс обрабатывает исключения, возникающие в контроллерах,
+ * и возвращает соответствующие страницы ошибок.
+ */
+@ControllerAdvice
+public class GlobalExceptionHandler {
+    @ExceptionHandler(BindException.class)
+    public String handleValidationExceptions(BindException ex, Model model) {
+        model.addAttribute("errors", ex.getBindingResult().getAllErrors());
+        model.addAttribute("errorMessage", "Ошибка валидации данных");
+        return "error/validation-error";
     }
 
-    // GET /courses/{id}/delete - удаление курса
-    @GetMapping("/{id}/delete")
-    public String deleteCourse(@PathVariable Long id) {
-        courseService.deleteCourse(id);
-        return "redirect:/courses";
+    @ExceptionHandler(Exception.class)
+    public String handleGeneralException(Exception ex, Model model) {
+        model.addAttribute("errorMessage", "Произошла ошибка: " + ex.getMessage());
+        return "error/error";
     }
 }
 ```
 
-## 3. Конфигурационные файлы
+## 4. Конфигурационные файлы
 
-**application.properties** - настройки Spring Boot приложения
+### **application.properties**
 ```properties
-# Настройки базы данных PostgreSQL
+# Database
 spring.datasource.url=jdbc:postgresql://localhost:5432/skillflow
 spring.datasource.username=postgres
 spring.datasource.password=5432
 
-# Настройки JPA и Hibernate
-spring.jpa.hibernate.ddl-auto=update        # Автоматическое обновление схемы БД
-spring.jpa.show-sql=true                    # Показывать SQL запросы в логах
+# JPA
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.properties.hibernate.format_sql=true
 
-# Настройки сервера
-server.port=8080                            # Порт приложения
+# Server
+server.port=8080
 
-# Настройки Thymeleaf шаблонов
+# Thymeleaf
 spring.thymeleaf.prefix=classpath:/templates/
 spring.thymeleaf.suffix=.html
 spring.thymeleaf.mode=HTML
 spring.thymeleaf.encoding=UTF-8
+spring.thymeleaf.cache=false
+
+# Logging
+logging.level.root=INFO
+logging.level.com.skillflow=DEBUG
 ```
 
-**pom.xml** - зависимости Maven
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-    <modelVersion>4.0.0</modelVersion>
+## 5. HTML шаблоны
 
-    <groupId>com.skillflow</groupId>
-    <artifactId>skillflow</artifactId>
-    <version>1.0.0</version>
-    <packaging>jar</packaging>
+Реализовано более 20 HTML шаблонов с использованием Thymeleaf и Bootstrap 5:
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.0</version>
-    </parent>
+### Основные страницы:
+- **index.html** - главная страница с навигацией и статистикой
+- **experts/** - полный CRUD для экспертов (list, form, view)
+- **students/** - полный CRUD для студентов (list, form, view)
+- **courses/** - полный CRUD для курсов (list, form, view)
+- **studyplans/** - полный CRUD для учебных планов (list, form, view)
+- **error/** - страницы ошибок (error.html, validation-error.html)
 
-    <dependencies>
-        <!-- Spring Boot Web для создания веб-приложения -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
+### Особенности интерфейса:
+- ✅ Адаптивный дизайн (mobile-first)
+- ✅ Интерактивные анимации (animations.js)
+- ✅ Валидация форм на стороне клиента
+- ✅ Хлебные крошки для навигации
+- ✅ Статистические карточки
+- ✅ Модальные подтверждения удаления
+- ✅ Tooltips и всплывающие подсказки
+
+## 6. JavaScript функциональность
+
+### **animations.js**
+```javascript
+/**
+ * Файл анимаций для системы SkillFlow.
+ * Содержит JavaScript код для анимации элементов интерфейса.
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // Анимация появления элементов при скролле
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+
+    // Утилиты для работы с датами
+    const SkillFlowUtils = {
+        formatDate: function(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('ru-RU', options);
+        },
         
-        <!-- Thymeleaf для шаблонов HTML -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-        
-        <!-- Spring Data JPA для работы с базой данных -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        
-        <!-- Драйвер PostgreSQL -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-        </dependency>
-        
-        <!-- Валидация данных -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        
-        <!-- Тестирование -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-</project>
+        formatRelativeTime: function(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffDays = Math.ceil(Math.abs(now - date) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) return 'Сегодня';
+            if (diffDays === 2) return 'Вчера';
+            if (diffDays < 7) return `${diffDays} дня назад`;
+            return this.formatDate(dateString);
+        }
+    };
+});
 ```
 
-## 4. HTML шаблоны (реализованные)
+## 7. Схема базы данных
 
-- **index.html** - главная страница с навигацией
-- **experts/list.html** - список всех экспертов
-- **experts/form.html** - форма создания/редактирования эксперта  
-- **experts/view.html** - просмотр деталей эксперта
-- **students/list.html** - список всех студентов
-- **students/form.html** - форма создания/редактирования студента
-- **students/view.html** - просмотр деталей студента
-- **courses/list.html** - список всех курсов
-- **courses/form.html** - форма создания/редактирования курса
-- **courses/view.html** - просмотр деталей курса
+```sql
+-- Основные таблицы
+experts (id_эксперта, имя_эксперта, фамилия_эксперта, email_эксперта, биография_эксперта, специализация_эксперта)
+students (id_студента, имя_студента, фамилия_студента, email_студента, дата_регистрации_студента, статус_студента)
+courses (id_курса, название_курса, описание_курса, дата_создания_курса, дата_обновления_курса, id_эксперта, статус_курса, начало_регистрации, окончание_регистрации, начало_курса, окончание_курса)
+study_plans (id_плана, id_студента, id_курса, дата_начала, плановая_дата_окончания, статус_плана)
+course_prices (id, id_курса, дата_начала_действия_цены, цена_курса, дата_окончания_действия_цены)
 
-## 5. Инструкция по запуску
+-- Связи
+courses.id_эксперта → experts.id_эксперта
+study_plans.id_студента → students.id_студента
+study_plans.id_курса → courses.id_курса
+course_prices.id_курса → courses.id_курса
+```
+
+## 8. Инструкция по запуску
 
 ### Требования:
-- Java JDK 8+
-- Maven 3.6+
-- PostgreSQL 12+
+- Java JDK 11+
+- Maven 3.8+
+- PostgreSQL 14+
+- Node.js (для фронтенд зависимостей)
 
-**Доступ к приложению:** http://localhost:8080
+### Установка и запуск:
+
+1. **Клонирование репозитория:**
+```bash
+git clone https://github.com/AndreiPanchenko/SkillFlow.git
+cd SkillFlow
+```
+
+2. **Настройка базы данных:**
+```sql
+CREATE DATABASE skillflow;
+CREATE USER skillflow_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE skillflow TO skillflow_user;
+```
+
+3. **Настройка конфигурации:**
+Отредактируйте `src/main/resources/application.properties`:
+```properties
+spring.datasource.username=skillflow_user
+spring.datasource.password=your_password
+```
+
+4. **Сборка и запуск:**
+```bash
+mvn clean install
+mvn spring-boot:run
+```
+
+5. **Доступ к приложению:**
+- Главная страница: http://localhost:8080
+- Админ панель: http://localhost:8080
 
 ### Основные URL:
 - `/` - главная страница
 - `/experts` - управление экспертами
 - `/students` - управление студентами
 - `/courses` - управление курсами
+- `/studyplans` - управление учебными планами
