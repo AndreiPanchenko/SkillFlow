@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Ошибка валидации - SkillFlow</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark navbar-purple">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <i class="fas fa-graduation-cap me-2"></i>SkillFlow
+    </a>
+  </div>
+</nav>
+
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Ошибка валидации</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading" th:text="${errorMessage}"></h4>
+            <hr>
+            <ul class="mb-0">
+              <li th:each="error : ${errors}" th:text="${error.defaultMessage}"></li>
+            </ul>
+          </div>
+          <div class="d-grid gap-2">
+            <a href="javascript:history.back()" class="btn btn-primary">
+              <i class="fas fa-arrow-left me-2"></i>Вернуться назад
+            </a>
+            <a th:href="@{/}" class="btn btn-secondary">
+              <i class="fas fa-home me-2"></i>На главную
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

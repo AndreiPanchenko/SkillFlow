@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${student.id != null} ? 'Редактирование студента - SkillFlow' : 'Добавление студента - SkillFlow'">SkillFlow</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Специфичные стили для формы студента */
+    .card-header {
+        background: linear-gradient(135deg, #6a0dad 0%, #8a2be2 100%) !important;
+        color: white !important;
+    }
+
+    .card-header h5,
+    .card-header .card-title,
+    .card-header .mb-0 {
+        color: white !important;
+    }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark navbar-purple">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <i class="fas fa-graduation-cap me-2"></i>SkillFlow
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/experts">
+            <i class="fas fa-users me-1"></i>Эксперты
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/students">
+            <i class="fas fa-user-graduate me-1"></i>Студенты
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/courses">
+            <i class="fas fa-book me-1"></i>Курсы
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Заголовок -->
+      <div class="d-flex align-items-center mb-4">
+        <div class="me-3">
+          <i class="fas fa-user-graduate fa-2x gradient-text"></i>
+        </div>
+        <div>
+          <h1 class="mb-1" th:text="${student.id != null} ? 'Редактирование студента' : 'Добавление студента'"></h1>
+          <p class="text-muted mb-0" th:text="${student.id != null} ?
+                            'Обновление информации о студенте' :
+                            'Заполните информацию о новом студенте'"></p>
+        </div>
+      </div>
+
+      <!-- Сообщение об ошибке -->
+      <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+
+      <!-- Форма -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-user-edit me-2"></i>
+            <span th:text="${student.id != null} ? 'Редактировать данные' : 'Основная информация'"></span>
+          </h5>
+        </div>
+        <div class="card-body">
+          <form action="/students" method="post" class="needs-validation" novalidate>
+
+            <!-- Скрытое поле ID -->
+            <input type="hidden" name="id" th:value="${student.id}">
+
+            <!-- Основная информация -->
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="firstName" class="form-label">
+                  <i class="fas fa-user me-1 text-purple"></i>Имя
+                </label>
+                <input type="text" class="form-control" id="firstName" name="firstName"
+                       th:value="${student.firstName}"
+                       placeholder="Введите имя" required>
+                <div class="invalid-feedback">
+                  Пожалуйста, введите имя студента.
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="lastName" class="form-label">
+                  <i class="fas fa-user me-1 text-purple"></i>Фамилия
+                </label>
+                <input type="text" class="form-control" id="lastName" name="lastName"
+                       th:value="${student.lastName}"
+                       placeholder="Введите фамилию" required>
+                <div class="invalid-feedback">
+                  Пожалуйста, введите фамилию студента.
+                </div>
+              </div>
+            </div>
+
+            <!-- Контактная информация -->
+            <div class="mb-3">
+              <label for="email" class="form-label">
+                <i class="fas fa-envelope me-1 text-purple"></i>Email адрес
+              </label>
+              <input type="email" class="form-control" id="email" name="email"
+                     th:value="${student.email}"
+                     placeholder="student@example.com" required>
+              <div class="invalid-feedback">
+                Пожалуйста, введите корректный email адрес.
+              </div>
+            </div>
+
+            <!-- Статус студента -->
+            <div class="mb-3">
+              <label for="status" class="form-label">
+                <i class="fas fa-flag me-1 text-purple"></i>Статус студента
+              </label>
+              <select class="form-select" id="status" name="status" required>
+                <option value="">Выберите статус</option>
+                <option value="АКТИВЕН" th:selected="${student.status == 'АКТИВЕН'}">Активен</option>
+                <option value="ЗАВЕРШИЛ" th:selected="${student.status == 'ЗАВЕРШИЛ'}">Завершил</option>
+                <option value="ОТЧИСЛЕН" th:selected="${student.status == 'ОТЧИСЛЕН'}">Отчислен</option>
+                <option value="В_ОЖИДАНИИ" th:selected="${student.status == 'В_ОЖИДАНИИ'}">В ожидании</option>
+              </select>
+              <div class="invalid-feedback">
+                Пожалуйста, выберите статус студента.
+              </div>
+            </div>
+
+            <!-- Дата регистрации (только для нового студента) -->
+            <div class="mb-4" th:if="${student.id == null}">
+              <label for="registrationDate" class="form-label">
+                <i class="fas fa-calendar-alt me-1 text-purple"></i>Дата регистрации
+              </label>
+              <input type="date" class="form-control" id="registrationDate"
+                     name="registrationDate"
+                     th:value="${student.registrationDate != null ? #temporals.format(student.registrationDate, 'yyyy-MM-dd') : #temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
+              <div class="form-text">
+                Дата, когда студент зарегистрировался в системе (по умолчанию текущая дата)
+              </div>
+            </div>
+
+            <!-- Кнопки -->
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>
+                <span th:text="${student.id != null} ? 'Обновить данные' : 'Создать студента'"></span>
+              </button>
+              <a href="/students" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Назад к списку
+              </a>
+              <div class="ms-auto">
+                <button type="reset" class="btn btn-outline-secondary">
+                  <i class="fas fa-undo me-2"></i>Очистить
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  (function () {
+      'use strict'
+      var forms = document.querySelectorAll('.needs-validation')
+      Array.prototype.slice.call(forms)
+          .forEach(function (form) {
+              form.addEventListener('submit', function (event) {
+                  if (!form.checkValidity()) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                  }
+                  form.classList.add('was-validated')
+              }, false)
+          })
+  })()
+</script>
+</body>
+</html>
